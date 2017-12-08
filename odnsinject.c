@@ -17,6 +17,7 @@
 #define UDP_HEADER_SIZE 8
 
 u_int32_t localhost_ip;
+libnet_t *l;
 
 /* Ethernet header */
 struct ethernet_header {
@@ -118,13 +119,6 @@ struct host_ip
   char hostname[100];
 };
 
-//volatile int run=1;
-
-//void sigint_handler(int signum)
-//{
-//  run=0;
-//}
-
 u_int32_t get_localhost_ip()
 {
   libnet_t *l;
@@ -151,7 +145,6 @@ u_int32_t get_localhost_ip()
 
 }
 
-//struct host_ip*
 struct host_ip ** read_hostsfile(char *hostnames_file)
 {
   FILE *f = fopen(hostnames_file, "r");
@@ -210,7 +203,6 @@ void pkt_receive_callback(u_char *args, const struct pcap_pkthdr *header, const 
   const struct ip_header *ip;
   const struct udp_header *udp;
   const struct dns_header *dns;
-  //HEADER *dns;
 
   ip = (struct ip_header*)(packet + SIZE_ETHERNET);
   if(ip->ip_p != IPPROTO_UDP)
@@ -218,8 +210,7 @@ void pkt_receive_callback(u_char *args, const struct pcap_pkthdr *header, const 
   int size_ip = IP_HL(ip)*4;
   udp = (struct udp_header*)(packet + SIZE_ETHERNET + size_ip);
   dns = (struct dns_header*)(((char*) udp) + UDP_HEADER_SIZE);
-  //dns = (HEADER *)(udp+1);
-  // check differently
+
   if (dns->opcode != QUERY || dns->nscount || dns->arcount)
 		return;
 
@@ -255,7 +246,6 @@ void pkt_receive_callback(u_char *args, const struct pcap_pkthdr *header, const 
         printf("badhai ho\n");
         break;
       }
-      //printf("oh bc %s %s\n", (*ptr)->hostname, (*ptr)->ip);
       ptr++;
     }
   }
@@ -263,11 +253,6 @@ void pkt_receive_callback(u_char *args, const struct pcap_pkthdr *header, const 
   {
     inj_ip = localhost_ip;
   }
-  else
-    return;
-
-  //printf("%d\n", dns_pkt_len);
-
 }
 int main(int argc, char **argv)
 {
@@ -366,7 +351,6 @@ int main(int argc, char **argv)
 
   localhost_ip = get_localhost_ip();
 
-  libnet_t *l;
   l = libnet_init(LIBNET_RAW4, interface, libnet_errbuffer);
   if(l == NULL)
   {
@@ -375,7 +359,7 @@ int main(int argc, char **argv)
   }
   libnet_seed_prand(l);
 
-  pcap_loop(handle, -1, pkt_receive_callback, (u_char *)hips);
+  pcap_loop(handle, 0, pkt_receive_callback, (u_char *)hips);
   printf("yo7\n");
   pcap_close(handle);
   return 0;
