@@ -9,6 +9,13 @@ Running the application
 1. sudo python dnsinject.py -i <interface> -h <hosts.txt> "expression"
 2. sudo python dnsdetect.py -i <interface> -r <sample.pcap> "expression"
 
+Working examples
+
+1. sudo python dnsinject.py -h hosts.txt
+2. sudo python dnsinject.py -i wlp9s0 -h hosts.txt "host 172.24.23.73"
+3. sudo python dnsdetect.py
+4. sudo python dnsdetect.py -r sample.pcap
+
 DNS inject
 
 1. Fetch local IP using netifaces.
@@ -20,6 +27,11 @@ DNS detect
 
 1. Track DNS requests seen on the interface.
 2. Support for multiple responses i.e. server responds with multiple IP's of requested resource.
+20171209-17:56:14.105098 DNS poisoning attempt
+TXID 0x72f8 Request four.com
+Answer1 ['216.93.251.205', '216.93.251.210']
+Answer2 ['10.3.4.5']
+
 More details below
 
 Strategy for detecting dns poisoning and false positives:
@@ -31,7 +43,9 @@ Strategy for detecting dns poisoning and false positives:
 
 One could argue that attacker can observe ttl and then accordingly set ttl. Handling such cases seems out of the scope of this assignment.
 
-Sample pcap output is in sample.pcap file. DNS detect output on this file is :
+Sample pcap output
+Command - sudo tcpdump -w sample.pcap -c 25 udp port 53
+DNS detect output on this file is :
 
 ~/netsec/DNS-Packet-Injection$sudo python dnsdetect.py -r sample.pcap
 WARNING: No route found for IPv6 destination :: (no default route?)
@@ -45,6 +59,10 @@ Answer2 ['10.8.8.10']
 TXID 0x72f8 Request four.com
 Answer1 ['216.93.251.205', '216.93.251.210']
 Answer2 ['10.3.4.5']
+
+
+Machine details
+Kubuntu 16.04 64 bit
 
 References
 
