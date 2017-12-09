@@ -2,3 +2,4 @@
 10.6.6.6      bar.example.com
 192.168.66.6  www.cs.stonybrook.edu
 10.8.8.10     iiit.ac.in
+10.3.4.5 four.com

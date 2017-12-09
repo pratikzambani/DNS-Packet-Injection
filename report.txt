@@ -3,12 +3,18 @@ https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_71/apis/dnexp.htm
 https://www.rpi.edu/dept/acm/packages/egcs/1.1.2/rs_aix41/lib/gcc-lib/rs6000-ibm-aix4.2.1.0/egcs-2.91.66/include/arpa/nameser.h
 https://support.sas.com/documentation/onlinedoc/sasc/doc700/html/lr2/zetshort.htm
 
-
+Installing packages
 
 sudo apt-get install python-netifaces
 sudo apt-get install python-scapy
 
 
+
+
+References
+
 https://www.tutorialspoint.com/python/python_command_line_arguments.htm
 
 https://stackoverflow.com/questions/270745/how-do-i-determine-all-of-my-ip-addresses-when-i-have-multiple-nics
+
+https://itgeekchronicles.co.uk/2014/05/12/scapy-iterating-over-dns-responses/

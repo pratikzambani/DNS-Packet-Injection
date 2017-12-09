@@ -1,26 +1,57 @@
 #!/usr/bin/python
 import sys, getopt
-import datetime import datetime
+from scapy.all import *
+from datetime import datetime
 
+DICT_LIMIT = 4096
 dns_queries = dict()
+ttl = dict()
 
 def detect_dns_attack(pkt):
     if IP in pkt and pkt.haslayer(DNS):
-        # DNSRR ?
-        print key
         if pkt.getlayer(DNS).qr == 0:
-            key = pkt[DNS].id+ pkt[DNSQR].qname
-            dns_queries[key] = 1
-            print 'printing all queries',dns_queries
+            key = str(pkt[DNS].id) + pkt[DNSQR].qname
+            #print 'query key', key
+            dns_queries[key] = 'queried'
         elif pkt.getlayer(DNS).qr == 1:
-            key = pkt[DNS].id+ pkt[DNSRR].qname
-            #if key in dns_queries.keys() and dns_queries[key]:
-            print datetime.now().strftime('%Y%m%d-%H:%M:%S.%f'), ' DNS poisoning attempt'
-            # qd.qname or not?
-            print 'TXID: '+str(pkt[DNS].id)+ '   Request: '+pkt.getlayer(DNS).qd.qname
-            print 'Answer1: ', dns_queries[pkt[DNS].id]
-            print 'Answer2: ', str(pkt[DNSRR].rdata)
+            poisoning_atmpt = False
+            key = str(pkt[DNS].id) + pkt[DNS].qd.qname
+            #print 'response key', key
 
+            a_count = pkt[DNS].ancount
+            i = a_count + 4
+            value = []
+            while i > 4:
+                value.append(pkt[0][i].rdata)
+                i -= 1
+
+            if key in dns_queries.keys() and dns_queries[key] == 'queried':
+                dns_queries[key] = value
+                ttl[key] = pkt[DNSRR].ttl
+                #print 'original ttl bro', pkt[DNSRR].ttl
+            elif key in dns_queries.keys():
+                #if ttl same:
+                #    then fine
+                if (len(dns_queries[key]) != len(value)) or \
+                  len(set(dns_queries[key]) & set(value)) != len(value) or \
+                  ttl[key] != pkt[DNSRR].ttl:
+                    poisoning_atmpt = True
+                #print 'second ttl bro', pkt[DNSRR].ttl
+            else:
+                poisoning_atmpt = True
+
+            if poisoning_atmpt and key in dns_queries:
+                print datetime.now().strftime('%Y%m%d-%H:%M:%S.%f'), 'DNS poisoning attempt'
+                print 'TXID', hex(pkt[DNS].id), 'Request', pkt[DNS].qd.qname.rstrip('.')
+                print 'Answer1', dns_queries[key]
+                print 'Answer2', value
+                print '\n'
+                del dns_queries[key]
+                del ttl[key]
+
+            if len(dns_queries) > DICT_LIMIT:
+                dns_queries.clear()
+                ttl.clear()
 
 def main(argv):
 
@@ -38,13 +69,14 @@ def main(argv):
         elif opt in ("-r", "--tracefile"):
             tracefile = arg
 
-    print interface
-    print tracefile
+    #print interface
+    #print tracefile
 
     if interface and tracefile:
         print 'Use either -i or -r, not both'
         sys.exit(2)
 
+    expression = None
     if tracefile:
         sniff(filter=expression, offline=tracefile, store=0, prn=detect_dns_attack)
     elif interface:

