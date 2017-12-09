@@ -33,9 +33,10 @@ def detect_dns_attack(pkt):
                 #if ttl same:
                 #    then fine
                 if (len(dns_queries[key]) != len(value)) or \
-                  len(set(dns_queries[key]) & set(value)) != len(value) or \
-                  ttl[key] != pkt[DNSRR].ttl:
-                    poisoning_atmpt = True
+                  len(set(dns_queries[key]) & set(value)) != len(value):
+                    if ttl[key] != pkt[DNSRR].ttl:
+                        #print 'ttl are', ttl[key], pkt[DNSRR].ttl
+                        poisoning_atmpt = True
                 #print 'second ttl bro', pkt[DNSRR].ttl
             else:
                 poisoning_atmpt = True
@@ -76,13 +77,17 @@ def main(argv):
         print 'Use either -i or -r, not both'
         sys.exit(2)
 
-    expression = None
+    expr = args
+    bpf_filter = 'udp port 53'
+    if expr:
+        bpf_filter = expr[0] + ' and udp port 53'
+
     if tracefile:
-        sniff(filter=expression, offline=tracefile, store=0, prn=detect_dns_attack)
+        sniff(filter=bpf_filter, offline=tracefile, store=0, prn=detect_dns_attack)
     elif interface:
-        sniff(filter=expression, iface=interface, store=0, prn=detect_dns_attack)
+        sniff(filter=bpf_filter, iface=interface, store=0, prn=detect_dns_attack)
     else:
-        sniff(filter=expression, store=0, prn=detect_dns_attack)
+        sniff(filter=bpf_filter, store=0, prn=detect_dns_attack)
 
 if __name__ == "__main__":
    main(sys.argv[1:])

